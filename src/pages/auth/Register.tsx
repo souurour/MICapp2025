@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,11 +30,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertCircle,
+  User,
+  ShieldCheck,
+  Wrench,
+  CheckCircle,
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserRole } from "@/types/auth";
 
-// Form validation schema
+// Regular user/technician registration schema
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -43,14 +51,31 @@ const registerSchema = z.object({
   role: z.enum(["user", "technician"]).default("user"),
 });
 
+// Admin registration schema with admin code verification
+const adminRegisterSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" }),
+  adminCode: z.string().refine((val) => val === "ADMIN2025", {
+    message: "Invalid admin code",
+  }),
+  department: z.string().optional(),
+});
+
 type RegisterFormValues = z.infer<typeof registerSchema>;
+type AdminRegisterFormValues = z.infer<typeof adminRegisterSchema>;
 
 export default function Register() {
   const { register, error, clearError } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("user");
+  const [adminSuccess, setAdminSuccess] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
 
-  // Initialize form
+  // Initialize regular form
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -61,7 +86,19 @@ export default function Register() {
     },
   });
 
-  // Form submission handler
+  // Initialize admin form
+  const adminForm = useForm<AdminRegisterFormValues>({
+    resolver: zodResolver(adminRegisterSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      adminCode: "",
+      department: "",
+    },
+  });
+
+  // Regular user registration submission handler
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     clearError();
@@ -72,6 +109,52 @@ export default function Register() {
     } catch (error) {
       // Error is handled by the auth context
       console.error("Registration failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Admin registration submission handler
+  const onAdminSubmit = async (data: AdminRegisterFormValues) => {
+    setIsLoading(true);
+    setAdminError(null);
+    setAdminSuccess(false);
+
+    try {
+      // Create admin user object
+      const adminUser = {
+        id: `admin_${Date.now()}`,
+        email: data.email,
+        name: data.name,
+        role: "admin" as UserRole,
+        department: data.department || "Administration",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Store in localStorage for the auth context to find
+      localStorage.setItem("authToken", "admin-token");
+      localStorage.setItem("user", JSON.stringify(adminUser));
+
+      // Also store in users collection for the admin panel
+      const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      storedUsers.push(adminUser);
+      localStorage.setItem("users", JSON.stringify(storedUsers));
+
+      // Show success message
+      setAdminSuccess(true);
+
+      // Wait briefly, then navigate
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
+    } catch (error) {
+      setAdminError(
+        error instanceof Error
+          ? error.message
+          : "Admin registration failed. Please try again.",
+      );
+      console.error("Admin registration failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -134,98 +217,320 @@ export default function Register() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="user" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span>User</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="technician"
+                className="flex items-center gap-2"
+              >
+                <Wrench className="h-4 w-4" />
+                <span>Technician</span>
+              </TabsTrigger>
+              <TabsTrigger value="admin" className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Admin</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your full name"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your email"
-                        type="email"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Create a password"
-                        type="password"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select
-                      disabled={isLoading}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="technician">Technician</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create Account"}
-              </Button>
-            </form>
-          </Form>
+            <TabsContent value="user" className="mt-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your full name"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your email"
+                            type="email"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Create a password"
+                            type="password"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <input type="hidden" name="role" value="user" />
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Create User Account"}
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value="technician" className="mt-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit((data) => {
+                    // Set role to technician explicitly
+                    onSubmit({ ...data, role: "technician" });
+                  })}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your full name"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your email"
+                            type="email"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Create a password"
+                            type="password"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading
+                      ? "Creating account..."
+                      : "Create Technician Account"}
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value="admin" className="mt-4">
+              {adminError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{adminError}</AlertDescription>
+                </Alert>
+              )}
+
+              {adminSuccess && (
+                <Alert className="mb-4 bg-green-50 border-green-200">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle className="text-green-800">Success</AlertTitle>
+                  <AlertDescription className="text-green-700">
+                    Admin account created successfully. Redirecting to
+                    dashboard...
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Form {...adminForm}>
+                <form
+                  onSubmit={adminForm.handleSubmit(onAdminSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={adminForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter admin name"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={adminForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter admin email"
+                            type="email"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={adminForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Create a strong password"
+                            type="password"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={adminForm.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department (Optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter department"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={adminForm.control}
+                    name="adminCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Authorization Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter admin code"
+                            type="password"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          The admin code is required for security purposes.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full bg-red-600 hover:bg-red-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading
+                      ? "Creating admin account..."
+                      : "Create Admin Account"}
+                  </Button>
+                </form>
+              </Form>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mt-4">
+                <p className="text-sm text-amber-800">
+                  <strong>Note:</strong> Admin accounts have full system access.
+                  Admin creation requires an authorization code.
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="relative">
