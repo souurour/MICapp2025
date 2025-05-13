@@ -22,6 +22,9 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/dashboard/Dashboard";
 import MachineList from "./pages/machines/MachineList";
 import UserList from "./pages/users/UserList";
+import CreateUserPage from "./pages/users/CreateUserPage";
+import EditUserPage from "./pages/users/EditUserPage";
+import UserDetailsPage from "./pages/users/UserDetailsPage";
 import AlertList from "./pages/alerts/AlertList";
 import MaintenanceList from "./pages/maintenance/MaintenanceList";
 import ReportList from "./pages/reports/ReportList";
@@ -91,6 +94,30 @@ const App = () => {
                       element={
                         <ProtectedRoute requiredRoles={["admin"]}>
                           <UserList />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/users/create"
+                      element={
+                        <ProtectedRoute requiredRoles={["admin"]}>
+                          <CreateUserPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/users/edit/:userId"
+                      element={
+                        <ProtectedRoute requiredRoles={["admin"]}>
+                          <EditUserPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/users/:userId"
+                      element={
+                        <ProtectedRoute requiredRoles={["admin"]}>
+                          <UserDetailsPage />
                         </ProtectedRoute>
                       }
                     />

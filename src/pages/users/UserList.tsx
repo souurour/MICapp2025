@@ -178,6 +178,27 @@ export default function UserList() {
     navigate(`/users/${userId}`);
   };
 
+  // Check if there are any users in localStorage
+  useEffect(() => {
+    // If we have mock users from localStorage, add them to our state
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+
+    if (storedUsers.length > 0) {
+      // Merge with mock users, avoiding duplicates by ID
+      const mergedUsers = [...mockUsers];
+
+      storedUsers.forEach((storedUser: User) => {
+        // Check if user already exists in our list
+        const exists = mergedUsers.some((u) => u.id === storedUser.id);
+        if (!exists) {
+          mergedUsers.push(storedUser);
+        }
+      });
+
+      setUsers(mergedUsers);
+    }
+  }, []);
+
   const confirmDeleteUser = (user: User) => {
     setUserToDelete(user);
     setIsDeleteDialogOpen(true);
