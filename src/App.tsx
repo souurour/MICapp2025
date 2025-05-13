@@ -21,15 +21,19 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import Index from "./pages/Index";
 import Dashboard from "./pages/dashboard/Dashboard";
 import MachineList from "./pages/machines/MachineList";
+import CreateMachinePage from "./pages/machines/CreateMachinePage";
 import UserList from "./pages/users/UserList";
 import CreateUserPage from "./pages/users/CreateUserPage";
 import EditUserPage from "./pages/users/EditUserPage";
 import UserDetailsPage from "./pages/users/UserDetailsPage";
 import AlertList from "./pages/alerts/AlertList";
+import CreateAlertPage from "./pages/alerts/CreateAlertPage";
 import MaintenanceList from "./pages/maintenance/MaintenanceList";
+import CreateMaintenancePage from "./pages/maintenance/CreateMaintenancePage";
 import ReportList from "./pages/reports/ReportList";
 import PredictionDashboard from "./pages/prediction/PredictionDashboard";
 import FeedbackList from "./pages/feedback/FeedbackList";
+import CreateFeedbackPage from "./pages/feedback/CreateFeedbackPage";
 import NotificationList from "./pages/notifications/NotificationList";
 import ProfilePage from "./pages/profile/ProfilePage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -90,6 +94,14 @@ const App = () => {
                       }
                     />
                     <Route
+                      path="/machines/create"
+                      element={
+                        <ProtectedRoute requiredRoles={["technician", "admin"]}>
+                          <CreateMachinePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/users"
                       element={
                         <ProtectedRoute requiredRoles={["admin"]}>
@@ -130,10 +142,26 @@ const App = () => {
                       }
                     />
                     <Route
+                      path="/alerts/create"
+                      element={
+                        <ProtectedRoute>
+                          <CreateAlertPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/maintenance"
                       element={
                         <ProtectedRoute requiredRoles={["technician", "admin"]}>
                           <MaintenanceList />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/maintenance/create"
+                      element={
+                        <ProtectedRoute requiredRoles={["technician", "admin"]}>
+                          <CreateMaintenancePage />
                         </ProtectedRoute>
                       }
                     />
@@ -158,6 +186,14 @@ const App = () => {
                       element={
                         <ProtectedRoute>
                           <FeedbackList />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/feedback/create"
+                      element={
+                        <ProtectedRoute>
+                          <CreateFeedbackPage />
                         </ProtectedRoute>
                       }
                     />
