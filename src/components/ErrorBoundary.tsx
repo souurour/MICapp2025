@@ -1,21 +1,18 @@
-import { Component, ErrorInfo, ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import React, { Component, ReactNode } from "react";
+import { Button } from "./ui/button";
 
-interface ErrorBoundaryProps {
+interface Props {
   children: ReactNode;
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: ErrorInfo | null;
+  errorInfo: React.ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
-  constructor(props: ErrorBoundaryProps) {
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
     this.state = {
       hasError: false,
@@ -24,86 +21,81 @@ export class ErrorBoundary extends Component<
     };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    // Update state so the next render will show the fallback UI
-    return {
-      hasError: true,
-      error,
-      errorInfo: null,
-    };
+  static getDerivedStateFromError(_: Error): State {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true, error: _, errorInfo: null };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // You can also log the error to an error reporting service
-    console.error("Error caught by ErrorBoundary:", error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log error details
+    console.error("Error caught by error boundary:", error, errorInfo);
     this.setState({
       error,
       errorInfo,
     });
   }
 
-  handleReload = (): void => {
-    window.location.reload();
-  };
+  render() {
+    const { hasError, error, errorInfo } = this.state;
 
-  handleGoHome = (): void => {
-    window.location.href = "/";
-  };
-
-  render(): ReactNode {
-    if (this.state.hasError) {
-      // You can render any custom fallback UI
+    if (hasError) {
+      // Render a nicer error UI than the default
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white p-4 text-center">
-          <div className="rounded-full bg-red-100 p-4">
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+          <div className="mb-6 rounded-full bg-red-100 p-4 text-red-600">
             <svg
-              className="h-10 w-10 text-red-600"
+              xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
+              strokeWidth={1.5}
               stroke="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
+              className="h-12 w-12"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
               />
             </svg>
           </div>
-          <h1 className="mt-6 text-3xl font-bold">Something went wrong</h1>
-          <p className="mt-2 text-lg text-gray-600">
-            We're sorry, but something went wrong. This might be a temporary
-            issue.
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">
+            Something went wrong
+          </h1>
+          <p className="mb-4 text-gray-600">
+            The application encountered an unexpected error.
           </p>
-
-          {process.env.NODE_ENV !== "production" && this.state.error && (
-            <div className="mt-6 w-full max-w-2xl overflow-auto rounded-md bg-gray-800 p-4 text-left text-white">
-              <p className="font-mono text-sm font-bold text-red-400">
-                {this.state.error.toString()}
-              </p>
-              {this.state.errorInfo && (
-                <p className="mt-2 font-mono text-xs text-gray-300">
-                  {this.state.errorInfo.componentStack
-                    .split("\n")
-                    .map((line, i) => (
-                      <span key={i}>
-                        {line}
-                        <br />
-                      </span>
-                    ))}
-                </p>
-              )}
+          <div className="mb-6 max-w-lg rounded-md bg-gray-50 p-4 text-left">
+            <div className="mb-2 font-medium text-gray-800">Error:</div>
+            <div className="mb-4 overflow-auto text-sm text-red-600">
+              {error?.toString() || "Unknown error"}
             </div>
-          )}
-
-          <div className="mt-8 flex space-x-4">
-            <Button onClick={this.handleReload} variant="default">
+            {errorInfo && (
+              <>
+                <div className="mb-2 font-medium text-gray-800">
+                  Component Stack:
+                </div>
+                <pre className="max-h-96 overflow-auto rounded bg-gray-100 p-2 text-xs text-gray-800">
+                  {errorInfo.componentStack}
+                </pre>
+              </>
+            )}
+          </div>
+          <div className="flex space-x-4">
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-primary"
+            >
               Reload Page
             </Button>
-            <Button onClick={this.handleGoHome} variant="outline">
-              Go to Homepage
+            <Button
+              onClick={() => (window.location.href = "/")}
+              variant="outline"
+            >
+              Go to Home
             </Button>
+          </div>
+          <div className="mt-8 text-sm text-gray-500">
+            If this problem persists, please contact support.
           </div>
         </div>
       );
