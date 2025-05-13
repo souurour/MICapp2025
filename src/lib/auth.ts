@@ -15,6 +15,16 @@ export const removeAuthToken = (): void => {
   localStorage.removeItem("authToken");
 };
 
+// Store user in localStorage
+export const setUser = (user: User): void => {
+  localStorage.setItem("user", JSON.stringify(user));
+};
+
+// Remove user from localStorage
+export const removeUser = (): void => {
+  localStorage.removeItem("user");
+};
+
 // Check if user has the required role
 export const hasRole = (
   user: User | null,
@@ -33,6 +43,7 @@ export const authApi = {
       credentials,
     );
     setAuthToken(response.token);
+    setUser(response.user);
     return response.user;
   },
 
@@ -43,7 +54,13 @@ export const authApi = {
       data,
     );
     setAuthToken(response.token);
+    setUser(response.user);
     return response.user;
+  },
+
+  // Admin registration (creating users with admin privileges)
+  adminRegister: async (data: RegisterData) => {
+    return await api.post<User>("/auth/admin-register", data);
   },
 
   // Get current user profile
@@ -51,13 +68,35 @@ export const authApi = {
     return await api.get<User>("/auth/me");
   },
 
+  // Update user profile
+  updateProfile: async (data: Partial<User>) => {
+    return await api.put<User>("/auth/profile", data);
+  },
+
   // Logout user
   logout: () => {
     removeAuthToken();
+    removeUser();
   },
 };
 
 // Protected route utility
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem("authToken");
+};
+
+// Helper for admin login creation (development only)
+export const createDevAdminLogin = (email: string, name: string): void => {
+  const adminUser = {
+    id: "admin",
+    email,
+    name,
+    role: "admin" as const,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  setAuthToken("admin-token");
+  setUser(adminUser);
+  console.log("Developer admin login created:", email);
 };
