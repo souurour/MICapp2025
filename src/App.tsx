@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { AlertProvider } from "@/context/AlertContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
+import { BackendConnectionStatus } from "@/components/BackendConnectionStatus";
 
 // Public pages
 import Home from "./pages/Home";
@@ -37,73 +38,6 @@ import CreateFeedbackPage from "./pages/feedback/CreateFeedbackPage";
 import NotificationList from "./pages/notifications/NotificationList";
 import ProfilePage from "./pages/profile/ProfilePage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
-import { AlertCircle } from "lucide-react";
-
-// Backend connection status component
-const BackendStatus = () => {
-  const [status, setStatus] = useState<"checking" | "connected" | "error">(
-    "checking",
-  );
-  const [message, setMessage] = useState("Checking backend connection...");
-
-  useEffect(() => {
-    const checkBackendConnection = async () => {
-      try {
-        // Assuming your backend has a / route that returns a simple response
-        const apiUrl =
-          import.meta.env.VITE_API_URL?.replace("/api", "") ||
-          "http://localhost:5000";
-        const response = await fetch(apiUrl);
-
-        if (response.ok) {
-          setStatus("connected");
-          setMessage("Successfully connected to backend");
-        } else {
-          setStatus("error");
-          setMessage(`Backend responded with status: ${response.status}`);
-        }
-      } catch (error) {
-        setStatus("error");
-        setMessage(
-          `Failed to connect to backend: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    };
-
-    checkBackendConnection();
-
-    // Check connection every 30 seconds
-    const interval = setInterval(checkBackendConnection, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (status === "checking") {
-    return null; // Don't show while checking
-  }
-
-  if (status === "error") {
-    return (
-      <div className="fixed bottom-4 right-4 z-50 max-w-md">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Backend Connection Error</AlertTitle>
-          <AlertDescription>
-            {message}
-            <div className="mt-2 text-sm">
-              Please make sure the backend server is running at{" "}
-              <code>
-                {import.meta.env.VITE_API_URL || "http://localhost:5000/api"}
-              </code>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  return null; // Don't show when connected
-};
 
 const App = () => {
   // Create a new QueryClient instance for each component render
@@ -289,7 +223,11 @@ const App = () => {
                   </Routes>
                 </Suspense>
               </BrowserRouter>
-              <BackendStatus />
+
+              {/* Show backend connection status in fixed position */}
+              <div className="fixed bottom-4 right-4 z-50 max-w-md">
+                <BackendConnectionStatus showRetry={true} />
+              </div>
             </TooltipProvider>
           </AlertProvider>
         </AuthProvider>

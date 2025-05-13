@@ -1,14 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello world project</title>
+    <title>MIC Service Laser</title>
+    <!-- Preload fonts to prevent layout shift -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Add a custom error handling script to catch issues before React loads -->
+    <script>
+      window.addEventListener("error", function (event) {
+        // Prevent Vite error overlay issues
+        if (
+          event.error &&
+          event.error.message &&
+          event.error.message.includes(
+            "Cannot read properties of undefined (reading 'frame')",
+          )
+        ) {
+          console.warn("Suppressed error:", event.error.message);
+          event.preventDefault();
+        }
+      });
+    </script>
   </head>
-
   <body>
     <div id="root"></div>
-
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

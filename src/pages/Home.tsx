@@ -23,23 +23,36 @@ export default function Home() {
   useEffect(() => {
     const checkBackendConnection = async () => {
       try {
-        // Try to connect to the backend
+        // Try to connect to the backend with error handling
         const apiUrl =
           import.meta.env.VITE_API_URL?.replace("/api", "") ||
           "http://localhost:5000";
-        const response = await fetch(apiUrl, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          // Short timeout to improve user experience
-          signal: AbortSignal.timeout(5000),
-        });
 
-        if (response.ok) {
-          setBackendStatus("connected");
-          setStatusMessage("Backend server is running and connected");
-        } else {
-          setBackendStatus("error");
-          setStatusMessage(`Backend responded with status: ${response.status}`);
+        // Use a try-catch block with a timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            setBackendStatus("connected");
+            setStatusMessage("Backend server is running and connected");
+          } else {
+            setBackendStatus("error");
+            setStatusMessage(
+              `Backend responded with status: ${response.status}`,
+            );
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
         }
       } catch (error) {
         setBackendStatus("error");
@@ -51,7 +64,12 @@ export default function Home() {
       }
     };
 
-    checkBackendConnection();
+    // Use a more reliable approach with setTimeout instead of immediate execution
+    const timer = setTimeout(() => {
+      checkBackendConnection();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const renderStatusBadge = () => {
@@ -204,7 +222,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Feature Section (simplified) */}
+      {/* Feature Section */}
       <section className="bg-gray-50 py-16">
         <div className="container mx-auto px-4">
           <h2 className="mb-12 text-center text-3xl font-bold">
